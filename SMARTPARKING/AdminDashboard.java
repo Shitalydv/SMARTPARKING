@@ -3,8 +3,16 @@ package SMARTPARKING;
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.awt.event.*;
 import java.sql.*;
 import java.util.*;
+import javax.swing.border.Border;
+import javax.swing.event.MouseInputAdapter;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 
 public class AdminDashboard extends JPanel {
     private JPanel contentPanel;
@@ -102,25 +110,70 @@ public class AdminDashboard extends JPanel {
         return panel;
     }
     
-    private JPanel createUsersPage() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.decode("#cee6e6"));
-        
-        String[] columns = {"User ID", "Name", "Email", "Actions"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0);
-        JTable table = new JTable(model);
-        
-        loadUsers(model);
-        
-        JScrollPane scrollPane = new JScrollPane(table);
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        JButton refreshBtn = new JButton("Refresh");
-        refreshBtn.addActionListener(e -> loadUsers(model));
-        panel.add(refreshBtn, BorderLayout.SOUTH);
-        
-        return panel;
+   private JPanel createUsersPage() {
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.setBackground(Color.decode("#cee6e6"));
+    
+    String[] columns = {"User ID", "Name", "Email", "Actions"};
+    DefaultTableModel model = new DefaultTableModel(columns, 0);
+    JTable table = new JTable(model);
+    
+    // Custom renderer for Delete button
+    table.getColumnModel().getColumn(3).setCellRenderer((t, value, isSelected, hasFocus, row, col) -> {
+        JButton btn = new JButton("Delete");
+        btn.setForeground(Color.RED);
+        return btn;
+    });
+    
+    // Add click listener for Delete action
+    table.addMouseListener(new MouseAdapter() {
+        public void mouseClicked(MouseEvent e) {
+            int row = table.rowAtPoint(e.getPoint());
+            int col = table.columnAtPoint(e.getPoint());
+            
+            if (row >= 0 && col == 3) {  // Delete column
+                int userId = (int)table.getValueAt(row, 0);
+                int confirm = JOptionPane.showConfirmDialog(
+                    panel,
+                    "Are you sure you want to delete this user?",
+                    "Confirm Delete",
+                    JOptionPane.YES_NO_OPTION
+                );
+                
+                if (confirm == JOptionPane.YES_OPTION) {
+                    deleteUser(userId);
+                    loadUsers(model);
+                }
+            }
+        }
+    });
+    
+    loadUsers(model);
+    
+    JScrollPane scrollPane = new JScrollPane(table);
+    panel.add(scrollPane, BorderLayout.CENTER);
+    
+    JButton refreshBtn = new JButton("Refresh");
+    refreshBtn.addActionListener(e -> loadUsers(model));
+    panel.add(refreshBtn, BorderLayout.SOUTH);
+    
+    return panel;
+}
+
+private void deleteUser(int userId) {
+    String query = "DELETE FROM users WHERE user_id = ?";
+    try (Connection conn = new DatabaseHandler().getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(query)) {
+        pstmt.setInt(1, userId);
+        int result = pstmt.executeUpdate();
+        if (result > 0) {
+            JOptionPane.showMessageDialog(this, "User deleted successfully");
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error deleting user");
     }
+}
     
     private JPanel createRatesPage() {
         JPanel panel = new JPanel(new GridBagLayout());
@@ -318,3 +371,5 @@ public class AdminDashboard extends JPanel {
         }
     }
 }
+// Manisha Sah 
+// Final done 

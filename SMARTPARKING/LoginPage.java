@@ -83,7 +83,7 @@ public class LoginPage extends JPanel {
 
     private void addLoginImage() {
         // Load original image
-        ImageIcon originalIcon = new ImageIcon("C:\\Users\\ACER\\OneDrive\\Desktop\\smartparking\\SMARTPARKING\\logo.png");
+        ImageIcon originalIcon = new ImageIcon("SMARTPARKING/logo.png");
         
         // Convert to BufferedImage
         BufferedImage bufferedImage = new BufferedImage(
