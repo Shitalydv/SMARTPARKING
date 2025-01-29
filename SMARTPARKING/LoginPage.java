@@ -1,10 +1,8 @@
 package SMARTPARKING;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
+import javax.swing.*;
 
 public class LoginPage extends JPanel {
     private JFrame frame;
@@ -85,7 +83,7 @@ public class LoginPage extends JPanel {
 
     private void addLoginImage() {
         // Load original image
-        ImageIcon originalIcon = new ImageIcon("/Users/shitalyadav/Desktop/Smart Parking /SMARTPARKING/logo.png");
+        ImageIcon originalIcon = new ImageIcon("C:\\Users\\ACER\\OneDrive\\Desktop\\smartparking\\SMARTPARKING\\logo.png");
         
         // Convert to BufferedImage
         BufferedImage bufferedImage = new BufferedImage(
@@ -118,6 +116,7 @@ public class LoginPage extends JPanel {
         }
         
 
+        
         LoginHandler loginHandler = new LoginHandler();
         if (loginHandler.usernameExists(username)) {
             boolean success = loginHandler.validateLogin(username, password);
@@ -147,4 +146,6 @@ public class LoginPage extends JPanel {
     }
 }
 
+// Rahul kumar Sharma
+// final done
 
