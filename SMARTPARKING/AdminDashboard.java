@@ -48,13 +48,14 @@ public class AdminDashboard extends JPanel {
         
         // Navigation buttons
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(4, 1, 5, 5));
+        buttonPanel.setLayout(new GridLayout(5, 1, 5, 5));
         buttonPanel.setBackground(new Color(35, 53, 75));
         
         addNavigationButton(buttonPanel, "Home");
         addNavigationButton(buttonPanel, "Users");
         addNavigationButton(buttonPanel, "Rates");
         addNavigationButton(buttonPanel, "History");
+        addNavigationButton(buttonPanel, "Slots");
         
         sidebar.add(buttonPanel, BorderLayout.CENTER);
         add(sidebar, BorderLayout.WEST);
@@ -78,6 +79,7 @@ public class AdminDashboard extends JPanel {
         cardPanel.add(createUsersPage(), "Users");
         cardPanel.add(createRatesPage(), "Rates");
         cardPanel.add(createHistoryPage(), "History");
+        cardPanel.add(createSlotsPage(), "Slots");
         
         add(cardPanel, BorderLayout.CENTER);
     }
@@ -370,6 +372,11 @@ private void deleteUser(int userId) {
             e.printStackTrace();
         }
     }
+    
+    private JPanel createSlotsPage() {
+        return new Slots(true); // Admin can modify slots
+    }
 }
+
 // Manisha Sah 
 // Final done 
