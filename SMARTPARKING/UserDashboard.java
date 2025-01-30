@@ -44,11 +44,13 @@ public class UserDashboard extends JPanel {
         JButton parkButton = createSidebarButton("Park");
         JButton parkHistoryButton = createSidebarButton("Park History");
         JButton profileButton = createSidebarButton("Profile");
+        JButton slotsButton = createSidebarButton("Slots");
 
         buttonPanel.add(homeButton);
         buttonPanel.add(parkButton);
         buttonPanel.add(parkHistoryButton);
         buttonPanel.add(profileButton);
+        buttonPanel.add(slotsButton);
 
         sidebar.add(buttonPanel, BorderLayout.CENTER);
 
@@ -71,6 +73,11 @@ public class UserDashboard extends JPanel {
         profileButton.addActionListener(e -> {
             cardLayout.show(cardPanel, "Profile");
             setSelectedButton(profileButton);
+        });
+
+        slotsButton.addActionListener(e -> {
+            cardLayout.show(cardPanel, "Slots");
+            setSelectedButton(slotsButton);
         });
 
         add(sidebar, BorderLayout.WEST);
@@ -118,6 +125,7 @@ public class UserDashboard extends JPanel {
         cardPanel.add(createParkPage(), "Park");
         cardPanel.add(createParkHistoryPage(), "ParkHistory");
         cardPanel.add(createProfilePage(), "Profile");
+        cardPanel.add(createSlotsPage(), "Slots");
 
         add(cardPanel, BorderLayout.CENTER);
     }
@@ -604,4 +612,11 @@ private void showAddVehicleDialog(VehicleManager vehicleManager, DefaultTableMod
         }
         return -1;
     }
+
+    private JPanel createSlotsPage() {
+        return new Slots(false); // User can only view slots
+    }
 }
+
+// User DashBoard final done after adding Slots 
+// Shital Yadav
