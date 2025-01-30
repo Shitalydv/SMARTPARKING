@@ -92,7 +92,7 @@ public class UserDashboard extends JPanel {
 
         // Profile picture
         JLabel profilePicLabel = new JLabel();
-        profilePicLabel.setIcon(new ImageIcon(new ImageIcon("/Users/shitalyadav/Desktop/Smart Parking /SMARTPARKING/user.png")
+        profilePicLabel.setIcon(new ImageIcon(new ImageIcon("C:\\Users\\ACER\\Desktop\\shital_smartparking\\SMARTPARKING\\user.png")
                 .getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
         profilePicLabel.setPreferredSize(new Dimension(60, 60));
         userInfoPanel.add(profilePicLabel, BorderLayout.WEST);

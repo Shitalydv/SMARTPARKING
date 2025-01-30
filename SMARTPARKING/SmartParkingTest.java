@@ -1,6 +1,8 @@
 package SMARTPARKING;
 
 import java.sql.*;
+import javax.swing.*;
+import java.awt.*;
 
 public class SmartParkingTest {
     public static void main(String[] args) {
@@ -20,6 +22,9 @@ public class SmartParkingTest {
         
         // Test parking operations
         testParkingOperations();
+
+        // Test UI
+        testUI();
     }
     
     private static void testDatabaseConnection() {
@@ -150,6 +155,30 @@ public class SmartParkingTest {
         // Cleanup
         vehicleManager.deleteVehicle(testVehicleNumber);
         System.out.println();
+    }
+
+    private static void testUI() {
+        System.out.println("Testing UI:");
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception e) {
+                System.out.println("✗ Failed to set look and feel: " + e.getMessage());
+            }
+            JFrame frame = new JFrame("Smart Parking Test UI");
+            frame.setSize(400, 300);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setLayout(new FlowLayout());
+
+            JLabel label = new JLabel("Smart Parking System UI Test");
+            JButton button = new JButton("Click Me");
+
+            button.addActionListener(e -> JOptionPane.showMessageDialog(frame, "Button clicked!"));
+
+            frame.add(label);
+            frame.add(button);
+            frame.setVisible(true);
+        });
     }
     
     private static int getUserIdForTest() {
