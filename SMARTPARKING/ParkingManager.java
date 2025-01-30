@@ -10,21 +10,76 @@ public class ParkingManager {
         this.userId = userId;
     }
 
-    public boolean parkVehicle(int vehicleId, int hours) {
-        String query = "INSERT INTO parks (vehicle_id, hourly_rate, total_bill) " +
-                      "SELECT ?, hr.hourly_rate, (hr.hourly_rate * ?) " +
-                      "FROM vehicles v " +
-                      "JOIN hourly_rates hr ON v.vehicle_type = hr.vehicle_type " +
-                      "WHERE v.vehicle_id = ?";
-        
+    private String findAvailableSlot(String vehicleType) {
+        String query = "SELECT slot_number FROM parking_slots " +
+                      "WHERE vehicle_type = ? AND is_occupied = FALSE " +
+                      "ORDER BY slot_number LIMIT 1";
+                  
         try (Connection conn = new DatabaseHandler().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
-            pstmt.setInt(1, vehicleId);
-            pstmt.setInt(2, hours);
-            pstmt.setInt(3, vehicleId);
+            pstmt.setString(1, vehicleType.toLowerCase());
+            ResultSet rs = pstmt.executeQuery();
             
-            return pstmt.executeUpdate() > 0;
+            if (rs.next()) {
+                return rs.getString("slot_number");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public boolean parkVehicle(int vehicleId, int hours) {
+        String getTypeQuery = "SELECT vehicle_type FROM vehicles WHERE vehicle_id = ?";
+        String parkQuery = "INSERT INTO parks (vehicle_id, parking_spot, hourly_rate, total_bill) " +
+                          "VALUES (?, ?, ?, ?)";
+        String findSlotQuery = "{CALL assign_nearest_slot(?, ?)}";
+    
+        try (Connection conn = new DatabaseHandler().getConnection()) {
+            conn.setAutoCommit(false);
+    
+            try {
+                // Get vehicle type
+                String vehicleType;
+                try (PreparedStatement pstmt = conn.prepareStatement(getTypeQuery)) {
+                    pstmt.setInt(1, vehicleId);
+                    ResultSet rs = pstmt.executeQuery();
+                    if (!rs.next()) return false;
+                    vehicleType = rs.getString("vehicle_type");
+                }
+    
+                // Find available slot
+                String slotNumber;
+                try (CallableStatement cstmt = conn.prepareCall(findSlotQuery)) {
+                    cstmt.setString(1, vehicleType);
+                    cstmt.registerOutParameter(2, Types.VARCHAR);
+                    cstmt.execute();
+                    slotNumber = cstmt.getString(2);
+                    if (slotNumber == null) {
+                        throw new SQLException("No available parking slots");
+                    }
+                }
+    
+                // Calculate rate and total
+                double rate = vehicleType.equals("bike") ? 30.0 : 50.0;
+                double total = rate * hours;
+    
+                // Park vehicle
+                try (PreparedStatement pstmt = conn.prepareStatement(parkQuery)) {
+                    pstmt.setInt(1, vehicleId);
+                    pstmt.setString(2, slotNumber);
+                    pstmt.setDouble(3, rate);
+                    pstmt.setDouble(4, total);
+                    pstmt.executeUpdate();
+                }
+    
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -99,7 +154,6 @@ public class ParkingManager {
         }
         return 0.0;
     }
-    
 }
 
 class ParkingRecord {
@@ -117,3 +171,6 @@ class ParkingRecord {
     public Timestamp getParkedDateTime() { return entryTime; }
     public double getTotalBill() { return totalBill; }
 }
+
+// Final done 
+// Shital Yadav
