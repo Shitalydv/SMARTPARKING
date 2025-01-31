@@ -92,7 +92,7 @@ public class UserDashboard extends JPanel {
 
         // Profile picture
         JLabel profilePicLabel = new JLabel();
-        profilePicLabel.setIcon(new ImageIcon(new ImageIcon("C:\\Users\\ACER\\Desktop\\shital_smartparking\\SMARTPARKING\\user.png")
+        profilePicLabel.setIcon(new ImageIcon(new ImageIcon("/Users/shitalyadav/Desktop/Smart Parking /SMARTPARKING/user.png")
                 .getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
         profilePicLabel.setPreferredSize(new Dimension(60, 60));
         userInfoPanel.add(profilePicLabel, BorderLayout.WEST);
@@ -172,6 +172,9 @@ public class UserDashboard extends JPanel {
         
         // Add refresh button
         JButton refreshButton = new JButton("Refresh Stats");
+        refreshButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Set font style
+        refreshButton.setPreferredSize(new Dimension(150, 30)); // Set size
+        refreshButton.setForeground(Color.BLUE);
         refreshButton.addActionListener(e -> {
             statsPanel.removeAll();
             statsPanel.add(createStatsCard("Total Expenses", 
@@ -188,7 +191,30 @@ public class UserDashboard extends JPanel {
         gbc.weighty = 0;
         panel.add(refreshButton, gbc);
         
+        // Add logout button
+        JButton logoutButton = new JButton("Logout");
+        logoutButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Set font style to match refresh button
+        logoutButton.setPreferredSize(new Dimension(150, 30)); // Set size to match refresh button
+        logoutButton.addActionListener(e -> logout());
+        logoutButton.setForeground(Color.RED);
+        gbc.gridy = 3;
+        gbc.gridwidth = 0; // Ensure grid width is set correctly
+        panel.add(logoutButton, gbc);
+        
         return panel;
+    }
+    
+    private void logout() {
+        JFrame topFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        topFrame.dispose(); // Close the current window
+        
+        // Create and show the login page
+        JFrame loginFrame = new JFrame("Login");
+        loginFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        loginFrame.setSize(1000, 600); // Set appropriate size
+        loginFrame.setLocationRelativeTo(null); // Center the window
+        loginFrame.add(new LoginPage(loginFrame)); // Assuming LoginPage is a JPanel
+        loginFrame.setVisible(true);
     }
       
     private JPanel createStatsCard(String title, String value) {
@@ -236,6 +262,7 @@ public class UserDashboard extends JPanel {
         
         // Add refresh button
         JButton refreshBtn = new JButton("Refresh");
+        refreshBtn.setForeground(Color.BLUE);
         refreshBtn.addActionListener(e -> {
             model.setRowCount(0);
             parkingManager.getParkingHistory().forEach(record -> 
@@ -458,6 +485,7 @@ private JPanel createParkPage() {
         }
     });
     JButton refreshButton = new JButton("Refresh");
+    refreshButton.setForeground(Color.BLUE);
     
     // Add refresh functionality
     refreshButton.addActionListener(e -> {
@@ -507,6 +535,7 @@ private void showAddVehicleDialog(VehicleManager vehicleManager, DefaultTableMod
     dialog.add(vehicleTypeField, gbc);
     
     JButton saveButton = new JButton("Add Vehicle");
+    
     gbc.gridy = 2;
     gbc.gridwidth = 2;
     dialog.add(saveButton, gbc);
@@ -618,5 +647,6 @@ private void showAddVehicleDialog(VehicleManager vehicleManager, DefaultTableMod
     }
 }
 
-// User DashBoard final done after adding Slots 
-// Shital Yadav
+
+// done userDashboard including slots view  
+// Shital Yadav 
