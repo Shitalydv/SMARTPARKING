@@ -156,6 +156,7 @@ public class AdminDashboard extends JPanel {
     panel.add(scrollPane, BorderLayout.CENTER);
     
     JButton refreshBtn = new JButton("Refresh");
+    refreshBtn.setForeground(Color.BLUE);
     refreshBtn.addActionListener(e -> loadUsers(model));
     panel.add(refreshBtn, BorderLayout.SOUTH);
     
@@ -201,6 +202,7 @@ private void deleteUser(int userId) {
         panel.add(carRateField, gbc);
         
         JButton updateBtn = new JButton("Update Rates");
+        updateBtn.setForeground(Color.BLUE);
         updateBtn.addActionListener(e -> {
             try {
                 double bikeRate = Double.parseDouble(bikeRateField.getText());
@@ -233,6 +235,7 @@ private void deleteUser(int userId) {
         panel.add(scrollPane, BorderLayout.CENTER);
         
         JButton refreshBtn = new JButton("Refresh");
+        refreshBtn.setForeground(Color.BLUE);
         refreshBtn.addActionListener(e -> loadParkingHistory(model));
         panel.add(refreshBtn, BorderLayout.SOUTH);
         
@@ -377,6 +380,5 @@ private void deleteUser(int userId) {
         return new Slots(true); // Admin can modify slots
     }
 }
-
 // Manisha Sah 
 // Final done 
