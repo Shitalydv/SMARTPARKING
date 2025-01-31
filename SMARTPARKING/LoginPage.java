@@ -1,8 +1,10 @@
 package SMARTPARKING;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class LoginPage extends JPanel {
     private JFrame frame;
@@ -83,7 +85,7 @@ public class LoginPage extends JPanel {
 
     private void addLoginImage() {
         // Load original image
-        ImageIcon originalIcon = new ImageIcon("C:\\Users\\ACER\\Desktop\\shital_smartparking\\SMARTPARKING\\logo.png");
+        ImageIcon originalIcon = new ImageIcon("C:\\Users\\ACER\\ram\\SMARTPARKING\\logo.png");
         
         // Convert to BufferedImage
         BufferedImage bufferedImage = new BufferedImage(
@@ -116,12 +118,12 @@ public class LoginPage extends JPanel {
         }
         
 
-        
         LoginHandler loginHandler = new LoginHandler();
         if (loginHandler.usernameExists(username)) {
             boolean success = loginHandler.validateLogin(username, password);
             if (success) {
                 // Navigate to dashboard
+                frame.dispose(); // Close the login frame
                 SmartParkingApp.showDashboard(username);  // Changed to use FitnessTrackerApp navigation
                 JOptionPane.showMessageDialog(frame, "Login successful!");
     
@@ -145,7 +147,6 @@ public class LoginPage extends JPanel {
         }
     }
 }
-
 // Rahul kumar Sharma
 // final done
 

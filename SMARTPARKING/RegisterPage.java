@@ -30,7 +30,7 @@ public class RegisterPage extends JPanel {
     }
 
     private void addRegisterImage() {
-        ImageIcon originalIcon = new ImageIcon("C:\\Users\\ACER\\Desktop\\shital_smartparking\\SMARTPARKING\\logo.png");
+        ImageIcon originalIcon = new ImageIcon("C:\\Users\\ACER\\ram\\SMARTPARKING\\logo.png");
         Image originalImage = originalIcon.getImage();
 
         int desiredWidth = 400;
