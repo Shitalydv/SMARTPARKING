@@ -42,6 +42,7 @@ public class Slots extends JPanel {
 
         // Refresh Button
         JButton refreshButton = new JButton("Refresh");
+        refreshButton.setForeground(Color.BLUE);
         refreshButton.addActionListener(e -> refreshSlots(bikeLabel, carLabel));
 
         mainPanel.add(statusPanel, BorderLayout.NORTH);
@@ -186,6 +187,7 @@ public class Slots extends JPanel {
         }
     }
 }
+
 
 // final done dashbaord and linked with userDashboard but not allowed to edit , only show 
 // allowed to change by admin ( occupied to not occupied - Red to Green  &  not occupied  to occupied  - Green to Red )
