@@ -1,7 +1,7 @@
 package SMARTPARKING;
 
-import java.awt.*;
 import javax.swing.*;
+import java.awt.*;
 
 public class RegisterPage extends JPanel {
     private JFrame frame;
@@ -30,7 +30,7 @@ public class RegisterPage extends JPanel {
     }
 
     private void addRegisterImage() {
-        ImageIcon originalIcon = new ImageIcon("C:\\Users\\ACER\\ram\\SMARTPARKING\\logo.png");
+        ImageIcon originalIcon = new ImageIcon("/Users/shitalyadav/Desktop/Smart Parking /SMARTPARKING/logo.png");
         Image originalImage = originalIcon.getImage();
 
         int desiredWidth = 400;
@@ -142,6 +142,7 @@ public class RegisterPage extends JPanel {
 
         if (success) {
             JOptionPane.showMessageDialog(frame, "Registration successful!");
+            SmartParkingApp.showLoginPage();
         } else {
             showError("Registration failed.", null);
         }
@@ -158,7 +159,6 @@ public class RegisterPage extends JPanel {
                 password.matches(".*[!@#$%^&*()-+=<>?].*");
     }
 
-    
     private void showError(String message, JComponent component) {
         JOptionPane.showMessageDialog(frame, message);
         if (component != null) {
@@ -166,6 +166,3 @@ public class RegisterPage extends JPanel {
         }
     }
 }
-
-// Rahul Kumar Sharma
-// final done 
