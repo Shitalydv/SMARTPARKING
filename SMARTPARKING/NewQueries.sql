@@ -1,3 +1,6 @@
+-- Drop database if exits
+drop database if exits smartparking;
+
 -- Create the database
 CREATE DATABASE smartparking;
 
@@ -120,7 +123,6 @@ BEGIN
     LIMIT 1;
 END //
 DELIMITER ;
-
 -- after adding dashboard 
 -- final push
 -- Nishan Bishwokarma
