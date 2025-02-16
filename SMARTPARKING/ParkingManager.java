@@ -10,31 +10,33 @@ public class ParkingManager {
         this.userId = userId;
     }
 
-    private String findAvailableSlot(String vehicleType) {
-        String query = "SELECT slot_number FROM parking_slots " +
-                      "WHERE vehicle_type = ? AND is_occupied = FALSE " +
-                      "ORDER BY slot_number LIMIT 1";
-                  
+    public boolean isVehicleParked(int vehicleId) {
+        String query = "SELECT COUNT(*) FROM parks WHERE vehicle_id = ? AND exit_time IS NULL";
         try (Connection conn = new DatabaseHandler().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
-            pstmt.setString(1, vehicleType.toLowerCase());
+            pstmt.setInt(1, vehicleId);
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
-                return rs.getString("slot_number");
+                return rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return false;
     }
 
-    public boolean parkVehicle(int vehicleId, int hours) {
+    public String parkVehicle(int vehicleId, int hours) {
+        // Check if vehicle is already parked
+        if (isVehicleParked(vehicleId)) {
+            return null;
+        }
+
         String getTypeQuery = "SELECT vehicle_type FROM vehicles WHERE vehicle_id = ?";
-        String parkQuery = "INSERT INTO parks (vehicle_id, parking_spot, hourly_rate, total_bill) " +
-                          "VALUES (?, ?, ?, ?)";
+        String parkQuery = "INSERT INTO parks (vehicle_id, parking_spot, hourly_rate, total_bill) VALUES (?, ?, ?, ?)";
         String findSlotQuery = "{CALL assign_nearest_slot(?, ?)}";
+        String updateSlotQuery = "UPDATE parking_slots SET is_occupied = TRUE WHERE slot_number = ?";
     
         try (Connection conn = new DatabaseHandler().getConnection()) {
             conn.setAutoCommit(false);
@@ -45,7 +47,7 @@ public class ParkingManager {
                 try (PreparedStatement pstmt = conn.prepareStatement(getTypeQuery)) {
                     pstmt.setInt(1, vehicleId);
                     ResultSet rs = pstmt.executeQuery();
-                    if (!rs.next()) return false;
+                    if (!rs.next()) return null;
                     vehicleType = rs.getString("vehicle_type");
                 }
     
@@ -62,7 +64,7 @@ public class ParkingManager {
                 }
     
                 // Calculate rate and total
-                double rate = vehicleType.equals("bike") ? 30.0 : 50.0;
+                double rate = calculateHourlyRate(vehicleType);
                 double total = rate * hours;
     
                 // Park vehicle
@@ -73,27 +75,37 @@ public class ParkingManager {
                     pstmt.setDouble(4, total);
                     pstmt.executeUpdate();
                 }
+
+                // Update slot status
+                try (PreparedStatement pstmt = conn.prepareStatement(updateSlotQuery)) {
+                    pstmt.setString(1, slotNumber);
+                    pstmt.executeUpdate();
+                }
     
                 conn.commit();
-                return true;
+                return slotNumber;
             } catch (SQLException e) {
                 conn.rollback();
                 throw e;
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
+            return null;
         }
     }
 
     public List<ParkingRecord> getParkingHistory() {
         List<ParkingRecord> history = new ArrayList<>();
-        String query = "SELECT v.vehicle_number, p.parked_datetime, p.total_bill " +
-                      "FROM parks p " +
-                      "JOIN vehicles v ON p.vehicle_id = v.vehicle_id " +
-                      "WHERE v.user_id = ? " +
-                      "ORDER BY p.parked_datetime DESC";
-        
+        String query = """
+            SELECT v.vehicle_number, p.parked_datetime, p.total_bill 
+            FROM parks p 
+            JOIN vehicles v ON p.vehicle_id = v.vehicle_id 
+            WHERE v.user_id = ? 
+            ORDER BY 
+                CASE WHEN p.exit_time IS NULL THEN 1 ELSE 0 END,
+                p.parked_datetime DESC
+        """;
+    
         try (Connection conn = new DatabaseHandler().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
@@ -112,22 +124,19 @@ public class ParkingManager {
         }
         return history;
     }
+    
 
     public double calculatePrice(int vehicleId, int hours) {
-        String query = "SELECT hr.hourly_rate * ? as total " +
-                      "FROM vehicles v " +
-                      "JOIN hourly_rates hr ON v.vehicle_type = hr.vehicle_type " +
-                      "WHERE v.vehicle_id = ?";
-        
+        String query = "SELECT vehicle_type FROM vehicles WHERE vehicle_id = ?";
         try (Connection conn = new DatabaseHandler().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
-            pstmt.setInt(1, hours);
-            pstmt.setInt(2, vehicleId);
+            pstmt.setInt(1, vehicleId);
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
-                return rs.getDouble("total");
+                String vehicleType = rs.getString("vehicle_type");
+                return calculateHourlyRate(vehicleType) * hours;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -136,9 +145,12 @@ public class ParkingManager {
     }
 
     public double getTotalExpenses() {
-        String query = "SELECT SUM(total_bill) as total FROM parks p " +
-                      "JOIN vehicles v ON p.vehicle_id = v.vehicle_id " +
-                      "WHERE v.user_id = ?";
+        String query = """
+            SELECT COALESCE(SUM(total_bill), 0.0) as total 
+            FROM parks p 
+            JOIN vehicles v ON p.vehicle_id = v.vehicle_id 
+            WHERE v.user_id = ?
+        """;
         
         try (Connection conn = new DatabaseHandler().getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
@@ -154,6 +166,49 @@ public class ParkingManager {
         }
         return 0.0;
     }
+
+
+    public boolean exitVehicle(int vehicleId) {
+        String updateParkQuery = "UPDATE parks SET exit_time = CURRENT_TIMESTAMP WHERE vehicle_id = ? AND exit_time IS NULL";
+        String updateSlotQuery = "UPDATE parking_slots SET is_occupied = FALSE WHERE slot_number = (SELECT parking_spot FROM parks WHERE vehicle_id = ? AND exit_time IS NULL)";
+        
+        try (Connection conn = new DatabaseHandler().getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try {
+                // Update slot status
+                try (PreparedStatement pstmt = conn.prepareStatement(updateSlotQuery)) {
+                    pstmt.setInt(1, vehicleId);
+                    pstmt.executeUpdate();
+                }
+
+                // Update park record
+                try (PreparedStatement pstmt = conn.prepareStatement(updateParkQuery)) {
+                    pstmt.setInt(1, vehicleId);
+                    boolean success = pstmt.executeUpdate() > 0;
+                    if (success) {
+                        conn.commit();
+                        return true;
+                    }
+                }
+                
+                conn.rollback();
+                return false;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private double calculateHourlyRate(String vehicleType) {
+        return vehicleType.equals("bike") ? 30.0 : 50.0;
+    }
+
+    
 }
 
 class ParkingRecord {
@@ -171,6 +226,3 @@ class ParkingRecord {
     public Timestamp getParkedDateTime() { return entryTime; }
     public double getTotalBill() { return totalBill; }
 }
-
-// Final done 
-// Shital Yadav
