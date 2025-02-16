@@ -1,4 +1,3 @@
-
 package SMARTPARKING;
 
 import java.sql.Connection;
@@ -23,26 +22,23 @@ public class RegistrationHandler {
             pstmt.setString(3, email);
             pstmt.setString(4, password);
             pstmt.setBoolean(5, isAdmin);
-
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
+            pstmt.executeUpdate();
+            return true; // Indicate success
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
+            return false; // Indicate failure
         }
     }
 
     public boolean usernameExists(String username) {
-        String checkQuery = "SELECT COUNT(*) FROM users WHERE username = ?";
-
+        String query = "SELECT COUNT(*) FROM users WHERE username = ?";
         DatabaseHandler dbHandler = new DatabaseHandler();
         try (Connection conn = dbHandler.getConnection();
-             PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
-
-            checkStmt.setString(1, username);
-            ResultSet rs = checkStmt.executeQuery();
-            if (rs.next() && rs.getInt(1) > 0) {
-                return true;
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
             e.printStackTrace();
