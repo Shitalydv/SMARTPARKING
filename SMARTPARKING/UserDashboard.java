@@ -1,15 +1,21 @@
 package SMARTPARKING;
 
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
 
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.List;
+
+
 
 public class UserDashboard extends JPanel {
     private JPanel contentPanel;
@@ -17,6 +23,7 @@ public class UserDashboard extends JPanel {
     private CardLayout cardLayout;
     private String username;
     private int userId = -1;
+    private Slots slotsPanel;
 
     public UserDashboard(String username) {
         this.username = username;
@@ -92,7 +99,7 @@ public class UserDashboard extends JPanel {
 
         // Profile picture
         JLabel profilePicLabel = new JLabel();
-        profilePicLabel.setIcon(new ImageIcon(new ImageIcon("/Users/shitalyadav/Desktop/Smart Parking /SMARTPARKING/user.png")
+        profilePicLabel.setIcon(new ImageIcon(new ImageIcon("/Users/shitalyadav/Desktop/Smart Parking /SMARTPARKING/user1.png")
                 .getImage().getScaledInstance(60, 60, Image.SCALE_SMOOTH)));
         profilePicLabel.setPreferredSize(new Dimension(60, 60));
         userInfoPanel.add(profilePicLabel, BorderLayout.WEST);
@@ -119,6 +126,7 @@ public class UserDashboard extends JPanel {
     private void initializeContentPanel() {
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
+        slotsPanel = new Slots(false);
 
         // Add pages with the specified background color
         cardPanel.add(createHomePage(), "Home");
@@ -193,13 +201,27 @@ public class UserDashboard extends JPanel {
         
         // Add logout button
         JButton logoutButton = new JButton("Logout");
-        logoutButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Set font style to match refresh button
-        logoutButton.setPreferredSize(new Dimension(150, 30)); // Set size to match refresh button
-        logoutButton.addActionListener(e -> logout());
+        logoutButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        logoutButton.setPreferredSize(new Dimension(150, 30));
         logoutButton.setForeground(Color.RED);
-        gbc.gridy = 3;
-        gbc.gridwidth = 0; // Ensure grid width is set correctly
-        panel.add(logoutButton, gbc);
+        logoutButton.addActionListener(e -> {
+            int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to logout?",
+                "Confirm Logout",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+                );
+    
+            if (choice == JOptionPane.YES_OPTION) {
+             SmartParkingApp.showLoginPage();
+            }
+    });
+    gbc.gridy = 3;
+    gbc.gridwidth = 0;
+    panel.add(logoutButton, gbc);
+
+        
         
         return panel;
     }
@@ -238,45 +260,104 @@ public class UserDashboard extends JPanel {
 
     
     private JPanel createParkHistoryPage() {
-        JPanel panel = new JPanel(new BorderLayout());
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(Color.decode("#cde6e6"));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        String[] columns = {"Vehicle Number", "Date & Time", "Total Bill"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        String[] columns = {
+            "Vehicle Number", 
+            "Entry Time", 
+            "Exit Time", 
+            "Parking Spot", 
+            "Total Bill"
+        };
+        
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        
         JTable table = new JTable(model);
+        table.setAutoCreateRowSorter(true);
+        table.setFillsViewportHeight(true);
+        table.setBackground(Color.WHITE);
+        table.setGridColor(Color.LIGHT_GRAY);
         
-        // Load parking history
-        ParkingManager parkingManager = new ParkingManager(getUserId());
-        List<ParkingRecord> history = parkingManager.getParkingHistory();
-        
-        for (ParkingRecord record : history) {
-            model.addRow(new Object[]{
-                record.getVehicleNumber(),
-                record.getParkedDateTime(),
-                String.format("Rs. %.2f", record.getTotalBill())
-            });
-        }
+        // Create custom header renderer
+        DefaultTableCellRenderer headerRenderer = new DefaultTableCellRenderer();
+        headerRenderer.setFont(new Font("Arial", Font.BOLD, 12));
+    
+        // Apply renderer to each column header
+        JTableHeader tableHeader = table.getTableHeader();
+        tableHeader.setDefaultRenderer(headerRenderer);
+    
+        updateParkingHistoryTable(model);
         
         JScrollPane scrollPane = new JScrollPane(table);
         panel.add(scrollPane, BorderLayout.CENTER);
         
-        // Add refresh button
-        JButton refreshBtn = new JButton("Refresh");
+        JButton refreshBtn = new JButton("Refresh History");
         refreshBtn.setForeground(Color.BLUE);
-        refreshBtn.addActionListener(e -> {
-            model.setRowCount(0);
-            parkingManager.getParkingHistory().forEach(record -> 
-                model.addRow(new Object[]{
-                    record.getVehicleNumber(),
-                    record.getParkedDateTime(),
-                    String.format("Rs. %.2f", record.getTotalBill())
-                })
-            );
-        });
-        panel.add(refreshBtn, BorderLayout.SOUTH);
+        refreshBtn.addActionListener(e -> updateParkingHistoryTable(model));
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(Color.decode("#cde6e6"));
+        buttonPanel.add(refreshBtn);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
         
         return panel;
     }
+    
+    private void updateParkingHistoryTable(DefaultTableModel model) {
+        model.setRowCount(0);
+        String query = """
+            SELECT 
+                v.vehicle_number, 
+                p.parked_datetime, 
+                p.exit_time, 
+                p.parking_spot, 
+                p.total_bill 
+            FROM parks p 
+            JOIN vehicles v ON p.vehicle_id = v.vehicle_id 
+            WHERE v.user_id = ? 
+            ORDER BY 
+                CASE WHEN p.exit_time IS NULL THEN 1 ELSE 0 END,
+                p.parked_datetime DESC
+        """;
+        
+        try (Connection conn = new DatabaseHandler().getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            pstmt.setInt(1, getUserId());
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getString("vehicle_number"),
+                    formatDateTime(rs.getTimestamp("parked_datetime")),
+                    formatDateTime(rs.getTimestamp("exit_time")),
+                    rs.getString("parking_spot"),
+                    String.format("Rs. %.2f", rs.getDouble("total_bill"))
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Error loading parking history", 
+                "Database Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private String formatDateTime(Timestamp timestamp) {
+        if (timestamp == null) return "Active";
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+        return sdf.format(timestamp);
+    }
+
+    
 
 private JPanel createProfilePage() {
     JPanel mainPanel = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -441,7 +522,6 @@ private JPanel createParkPage() {
     JComboBox<Vehicle> vehicleList = new JComboBox<>();
     vehicleManager.getUserVehicles().forEach(vehicleList::addItem);
     
-    // Add vehicle selector label
     JLabel vehicleLabel = new JLabel("Select Vehicle:");
     JLabel durationLabel = new JLabel("Hours to Park:");
     JLabel totalLabel = new JLabel("Total Amount: Rs. 0.00");
@@ -449,7 +529,26 @@ private JPanel createParkPage() {
     SpinnerNumberModel spinnerModel = new SpinnerNumberModel(1, 1, 24, 1);
     JSpinner durationSpinner = new JSpinner(spinnerModel);
     
-    // Add components using GridBagLayout
+    vehicleList.addActionListener(e -> {
+        Vehicle selectedVehicle = (Vehicle) vehicleList.getSelectedItem();
+        if (selectedVehicle != null) {
+            ParkingManager parkingManager = new ParkingManager(getUserId());
+            double amount = parkingManager.calculatePrice(selectedVehicle.getVehicleId(), 
+                (Integer) durationSpinner.getValue());
+            totalLabel.setText(String.format("Total Amount: Rs. %.2f", amount));
+        }
+    });
+    
+    durationSpinner.addChangeListener(e -> {
+        Vehicle selectedVehicle = (Vehicle) vehicleList.getSelectedItem();
+        if (selectedVehicle != null) {
+            ParkingManager parkingManager = new ParkingManager(getUserId());
+            double amount = parkingManager.calculatePrice(selectedVehicle.getVehicleId(), 
+                (Integer) durationSpinner.getValue());
+            totalLabel.setText(String.format("Total Amount: Rs. %.2f", amount));
+        }
+    });
+    
     gbc.gridx = 0; gbc.gridy = 0;
     panel.add(vehicleLabel, gbc);
     gbc.gridx = 1;
@@ -460,48 +559,155 @@ private JPanel createParkPage() {
     gbc.gridx = 1;
     panel.add(durationSpinner, gbc);
     
-    // Button panel
+    gbc.gridx = 0; gbc.gridy = 2;
+    gbc.gridwidth = 2;
+    panel.add(totalLabel, gbc);
+    
     JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
     buttonPanel.setBackground(Color.decode("#cee6e6"));
     
     JButton parkButton = new JButton("Park Vehicle");
+    JButton refreshButton = new JButton("Refresh");
+    refreshButton.setForeground(Color.BLUE);
+    
+    // Create Active Parkings Panel
+    JPanel activeParkingsPanel = new JPanel();
+    activeParkingsPanel.setLayout(new BoxLayout(activeParkingsPanel, BoxLayout.Y_AXIS));
+    activeParkingsPanel.setBorder(BorderFactory.createTitledBorder("Active Parkings"));
+    activeParkingsPanel.setBackground(Color.decode("#cee6e6"));
+    
+    loadActiveParkings(activeParkingsPanel);
+
     parkButton.addActionListener(e -> {
         Vehicle selectedVehicle = (Vehicle) vehicleList.getSelectedItem();
         int hours = (Integer) durationSpinner.getValue();
         
         if (selectedVehicle != null) {
             ParkingManager parkingManager = new ParkingManager(getUserId());
-            if (parkingManager.parkVehicle(selectedVehicle.getVehicleId(), hours)) {
-                JOptionPane.showMessageDialog(this, String.format(
-                    "Vehicle parked successfully!\nTotal Bill: Rs. %.2f",
-                    parkingManager.calculatePrice(selectedVehicle.getVehicleId(), hours)
-                ));
+            
+            if (parkingManager.isVehicleParked(selectedVehicle.getVehicleId())) {
+                JOptionPane.showMessageDialog(this, 
+                    "This vehicle is already parked. Please exit first.", 
+                    "Vehicle Already Parked", 
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            String allocatedSlot = parkingManager.parkVehicle(selectedVehicle.getVehicleId(), hours);
+            
+            if (allocatedSlot != null) {
+                double bill = parkingManager.calculatePrice(selectedVehicle.getVehicleId(), hours);
+                
+                JOptionPane.showMessageDialog(this, 
+                    String.format("Vehicle parked successfully!\nAllocated Slot: %s\nTotal Bill: Rs. %.2f", 
+                    allocatedSlot, bill));
+                
+                // Create exit button with panel
+                JPanel parkingEntry = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                parkingEntry.setBackground(Color.WHITE);
+                parkingEntry.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+                
+                JLabel parkingInfo = new JLabel(String.format("%s - Slot: %s", 
+                    selectedVehicle.getVehicleNumber(), allocatedSlot));
+                JButton exitButton = new JButton("Exit");
+                exitButton.setForeground(Color.RED);
+                
+                exitButton.addActionListener(exitEvent -> {
+                    if (parkingManager.exitVehicle(selectedVehicle.getVehicleId())) {
+                        JOptionPane.showMessageDialog(this, "Vehicle exited successfully!");
+                        activeParkingsPanel.remove(parkingEntry);
+                        activeParkingsPanel.revalidate();
+                        activeParkingsPanel.repaint();
+                        slotsPanel.refreshSlots();
+                    }
+                });
+                
+                parkingEntry.add(parkingInfo);
+                parkingEntry.add(exitButton);
+                activeParkingsPanel.add(parkingEntry);
+                activeParkingsPanel.revalidate();
+                activeParkingsPanel.repaint();
+                
+                // Reset and refresh
+                slotsPanel.refreshSlots();
                 durationSpinner.setValue(1);
             } else {
-                JOptionPane.showMessageDialog(this, "Failed to park vehicle");
+                JOptionPane.showMessageDialog(this, "No available slots!");
             }
-        } else {
-            JOptionPane.showMessageDialog(this, "Please select a vehicle");
         }
     });
-    JButton refreshButton = new JButton("Refresh");
-    refreshButton.setForeground(Color.BLUE);
     
-    // Add refresh functionality
     refreshButton.addActionListener(e -> {
         vehicleList.removeAllItems();
         vehicleManager.getUserVehicles().forEach(vehicleList::addItem);
+        buttonPanel.removeAll();
+        buttonPanel.add(parkButton);
+        buttonPanel.add(refreshButton);
+        buttonPanel.revalidate();
+        buttonPanel.repaint();
     });
     
     buttonPanel.add(parkButton);
     buttonPanel.add(refreshButton);
     
     gbc.gridx = 0;
-    gbc.gridy = 2;
+    gbc.gridy = 3;
     gbc.gridwidth = 2;
     panel.add(buttonPanel, gbc);
     
+    gbc.gridy = 4;
+    panel.add(activeParkingsPanel, gbc);
+    
     return panel;
+}
+
+private void loadActiveParkings(JPanel activeParkingsPanel) {
+    ParkingManager parkingManager = new ParkingManager(getUserId());
+    String query = "SELECT p.vehicle_id, v.vehicle_number, p.parking_spot FROM parks p " +
+                  "JOIN vehicles v ON p.vehicle_id = v.vehicle_id " +
+                  "WHERE v.user_id = ? AND p.exit_time IS NULL";
+                  
+    try (Connection conn = new DatabaseHandler().getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(query)) {
+        
+        pstmt.setInt(1, getUserId());
+        ResultSet rs = pstmt.executeQuery();
+        
+        while (rs.next()) {
+            String vehicleNumber = rs.getString("vehicle_number");
+            String parkingSpot = rs.getString("parking_spot");
+            int vehicleId = rs.getInt("vehicle_id");
+            
+            JPanel parkingEntry = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            parkingEntry.setBackground(Color.WHITE);
+            parkingEntry.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+            
+            JLabel parkingInfo = new JLabel(String.format("%s - Slot: %s", 
+                vehicleNumber, parkingSpot));
+            JButton exitButton = new JButton("Exit");
+            exitButton.setForeground(Color.RED);
+            
+            exitButton.addActionListener(e -> {
+                if (parkingManager.exitVehicle(vehicleId)) {
+                    JOptionPane.showMessageDialog(this, "Vehicle exited successfully!");
+                    activeParkingsPanel.remove(parkingEntry);
+                    activeParkingsPanel.revalidate();
+                    activeParkingsPanel.repaint();
+                    slotsPanel.refreshSlots();
+                }
+            });
+            
+            parkingEntry.add(parkingInfo);
+            parkingEntry.add(exitButton);
+            activeParkingsPanel.add(parkingEntry);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, 
+            "Error loading active parkings", 
+            "Database Error", 
+            JOptionPane.ERROR_MESSAGE);
+    }
 }
 
 
