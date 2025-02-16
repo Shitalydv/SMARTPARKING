@@ -70,4 +70,3 @@ public class UserProfile {
     public String getPassword() { return password; }
     public boolean isAdmin() { return isAdmin; }
 }
-
