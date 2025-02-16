@@ -3,8 +3,7 @@ package SMARTPARKING;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.sql.*;
 
 public class LoginPage extends JPanel {
     private JFrame frame;
@@ -85,7 +84,7 @@ public class LoginPage extends JPanel {
 
     private void addLoginImage() {
         // Load original image
-        ImageIcon originalIcon = new ImageIcon("C:\\Users\\ACER\\ram\\SMARTPARKING\\logo.png");
+        ImageIcon originalIcon = new ImageIcon("/Users/shitalyadav/Desktop/Smart Parking /SMARTPARKING/logo.png");
         
         // Convert to BufferedImage
         BufferedImage bufferedImage = new BufferedImage(
@@ -147,6 +146,3 @@ public class LoginPage extends JPanel {
         }
     }
 }
-// Rahul kumar Sharma
-// final done
-
