@@ -92,24 +92,76 @@ public class AdminDashboard extends JPanel {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        // Stats cards
+        // Welcome Message
+        JLabel welcomeLabel = new JLabel("Welcome, Admin!");
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        panel.add(welcomeLabel, gbc);
+        
+        // Stats Cards
         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 10, 0));
         statsPanel.setOpaque(false);
         
-        // Total Users
+        // Stats components
         int userCount = getTotalUsers();
         statsPanel.add(createStatsCard("Total Users", String.valueOf(userCount)));
         
-        // Total Revenue
         double revenue = getTotalRevenue();
         statsPanel.add(createStatsCard("Total Revenue", String.format("Rs. %.2f", revenue)));
         
-        // Total Parks
         int parkCount = getTotalParks();
         statsPanel.add(createStatsCard("Total Parks", String.valueOf(parkCount)));
         
-        panel.add(statsPanel);
+        gbc.gridy = 1;
+        gbc.weighty = 1;
+        panel.add(statsPanel, gbc);
+        
+        // Add refresh button
+        JButton refreshButton = new JButton("Refresh Stats");
+        refreshButton.setForeground(Color.BLUE);
+        refreshButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Set font style
+        refreshButton.setPreferredSize(new Dimension(150, 30)); // Set size
+        refreshButton.setForeground(Color.BLUE);
+        refreshButton.addActionListener(e -> {
+            statsPanel.removeAll();
+            statsPanel.add(createStatsCard("Total Users", String.valueOf(getTotalUsers())));
+            statsPanel.add(createStatsCard("Total Revenue", String.format("Rs. %.2f", getTotalRevenue())));
+            statsPanel.add(createStatsCard("Total Parks", String.valueOf(getTotalParks())));
+            statsPanel.revalidate();
+            statsPanel.repaint();
+        });
+        
+        gbc.gridy = 2;
+        gbc.weighty = 0;
+        panel.add(refreshButton, gbc);
+        
+        // Add logout button
+        JButton logoutButton = new JButton("Logout");
+        logoutButton.setForeground(Color.RED);
+        logoutButton.setFont(new Font("Arial", Font.PLAIN, 14)); // Set font style to match refresh button
+        logoutButton.setPreferredSize(new Dimension(150, 30)); // Set size to match refresh button
+        logoutButton.addActionListener(e -> logout());
+       
+        gbc.gridy = 3;
+        gbc.gridwidth = 0; // Ensure grid width is set correctly
+        panel.add(logoutButton, gbc);
+        
         return panel;
+    }
+    
+    private void logout() {
+        JFrame topFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        topFrame.dispose(); // Close the current window
+        
+        // Create and show the login page
+        JFrame loginFrame = new JFrame("Login");
+        loginFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        loginFrame.setSize(1000, 600); // Set appropriate size
+        loginFrame.setLocationRelativeTo(null); // Center the window
+        loginFrame.add(new LoginPage(loginFrame)); // Assuming LoginPage is a JPanel
+        loginFrame.setVisible(true);
     }
     
    private JPanel createUsersPage() {
