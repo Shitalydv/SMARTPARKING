@@ -3,6 +3,7 @@ package SMARTPARKING;
 import javax.swing.*;
 import java.awt.*;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 
 public class Slots extends JPanel {
     private static final int TOTAL_BIKE_SLOTS = 100;
@@ -43,7 +44,10 @@ public class Slots extends JPanel {
         // Refresh Button
         JButton refreshButton = new JButton("Refresh");
         refreshButton.setForeground(Color.BLUE);
-        refreshButton.addActionListener(e -> refreshSlots(bikeLabel, carLabel));
+        refreshButton.addActionListener(e -> {
+            refreshSlots();  // Refresh slot colors
+            updateStatusLabels(bikeLabel, carLabel);  // Update status labels
+        });
 
         mainPanel.add(statusPanel, BorderLayout.NORTH);
         mainPanel.add(slotsPanel, BorderLayout.CENTER);
@@ -99,12 +103,19 @@ public class Slots extends JPanel {
 
     private void updateSlotAppearance(JButton slot, boolean isOccupied) {
         if (isOccupied) {
-            slot.setBackground(new Color(220, 53, 69)); // Red
+            slot.setBackground(new Color(220, 53, 69));
             slot.setForeground(Color.WHITE);
             slot.setBorder(BorderFactory.createLineBorder(new Color(204, 0, 0), 2));
-            slot.setToolTipText("Occupied");
+            
+            if (isAdmin) {
+                String slotDetails = getSlotDetails(slot.getText());
+                ToolTipManager.sharedInstance().setDismissDelay(5000); // Set to 5 seconds
+                slot.setToolTipText(slotDetails);
+            } else {
+                slot.setToolTipText("Occupied");
+            }
         } else {
-            slot.setBackground(new Color(40, 167, 69)); // Green
+            slot.setBackground(new Color(40, 167, 69));
             slot.setForeground(Color.WHITE);
             slot.setBorder(BorderFactory.createLineBorder(new Color(0, 102, 0), 2));
             slot.setToolTipText("Available");
@@ -126,13 +137,12 @@ public class Slots extends JPanel {
         }
     }
 
-    private void refreshSlots(JLabel bikeLabel, JLabel carLabel) {
-        // Refresh the existing slots in both panels
+    public void refreshSlots() {
         for (Component comp : bikePanel.getComponents()) {
             if (comp instanceof JButton) {
                 JButton slot = (JButton) comp;
-                int slotNumber = Integer.parseInt(slot.getText().substring(1));
-                boolean isOccupied = checkSlotOccupancy("Bike", slotNumber);
+                String slotNumber = slot.getText();
+                boolean isOccupied = checkSlotOccupancy("Bike", Integer.parseInt(slotNumber.substring(1)));
                 updateSlotAppearance(slot, isOccupied);
             }
         }
@@ -140,21 +150,20 @@ public class Slots extends JPanel {
         for (Component comp : carPanel.getComponents()) {
             if (comp instanceof JButton) {
                 JButton slot = (JButton) comp;
-                int slotNumber = Integer.parseInt(slot.getText().substring(1));
-                boolean isOccupied = checkSlotOccupancy("Car", slotNumber);
+                String slotNumber = slot.getText();
+                boolean isOccupied = checkSlotOccupancy("Car", Integer.parseInt(slotNumber.substring(1)));
                 updateSlotAppearance(slot, isOccupied);
             }
         }
 
-        // Update status labels for bike and car slots
-        updateStatusLabels(bikeLabel, carLabel);
-
-        // Revalidate and repaint panels to reflect the changes
-        bikePanel.revalidate();
-        bikePanel.repaint();
-        carPanel.revalidate();
-        carPanel.repaint();
+        revalidate();
+        repaint();
     }
+    private void refreshSlots(JLabel bikeLabel, JLabel carLabel) {
+        refreshSlots();  // Refresh slot colors
+        updateStatusLabels(bikeLabel, carLabel);  // Update status labels
+    }
+
 
     private void updateStatusLabels(JLabel bikeLabel, JLabel carLabel) {
         String countQuery = "SELECT vehicle_type, COUNT(*) as count FROM parking_slots " +
@@ -186,6 +195,51 @@ public class Slots extends JPanel {
             e.printStackTrace();
         }
     }
+
+    private String getSlotDetails(String slotNumber) {
+    String query = """
+        SELECT 
+            u.fullname,
+            u.email,
+            v.vehicle_number,
+            p.parked_datetime,
+            TIMESTAMPDIFF(HOUR, p.parked_datetime, NOW()) as duration
+        FROM parks p
+        JOIN vehicles v ON p.vehicle_id = v.vehicle_id
+        JOIN users u ON v.user_id = u.user_id
+        WHERE p.parking_spot = ? AND p.exit_time IS NULL
+    """;
+    
+    try (Connection conn = new DatabaseHandler().getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(query)) {
+        
+        pstmt.setString(1, slotNumber);
+        ResultSet rs = pstmt.executeQuery();
+        
+        if (rs.next()) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+            return String.format("<html>" +
+                "<div style='background-color: #f8f8f8; padding: 5px; border: 1px solid #ddd;'>" +
+                "<b>User Details:</b><br>" +
+                "Name: %s<br>" +
+                "Email: %s<br><br>" +
+                "<b>Vehicle Details:</b><br>" +
+                "Number: %s<br>" +
+                "Parked Time: %s<br>" +
+                "Duration: %d hours" +
+                "</div></html>",
+                rs.getString("fullname"),
+                rs.getString("email"),
+                rs.getString("vehicle_number"),
+                sdf.format(rs.getTimestamp("parked_datetime")),
+                rs.getInt("duration")
+            );
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return "No details available";
+}
 }
 
 
